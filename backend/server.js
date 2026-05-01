@@ -1,3 +1,5 @@
+require('dotenv').config({ quiet: true });
+
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -45,7 +47,25 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smart-park'
   })
   .catch(err => console.error('MongoDB connection error:', err));
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+const allowedOrigins = (process.env.CLIENT_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const isAllowedLocalDevOrigin = (origin) => (
+  /^http:\/\/(localhost|127\.0\.0\.1):517\d$/.test(origin)
+);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || isAllowedLocalDevOrigin(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // Sanitize data to prevent NoSQL Injection

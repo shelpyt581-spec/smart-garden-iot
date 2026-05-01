@@ -77,6 +77,10 @@ const Payment = () => {
     if (value.length <= 3) setCvv(value);
   };
 
+  const getPaymentErrorMessage = (data) => {
+    return data?.message || data?.error || data?.details || 'Payment failed. Please try again.';
+  };
+
   const handlePayment = async (e) => {
     e.preventDefault();
     setIsProcessing(true);
@@ -84,6 +88,12 @@ const Payment = () => {
 
     if (paymentMethod === 'credit_card' && !useSavedCard && cardNumber.length < 19) {
       setError('Please enter a valid 16-digit card number.');
+      setIsProcessing(false);
+      return;
+    }
+
+    if (subscriptionType === 'one-time' && !selectedDate) {
+      setError('Please go back and select a visit date before paying.');
       setIsProcessing(false);
       return;
     }
@@ -126,7 +136,7 @@ const Payment = () => {
         }
         setSuccess(true);
       } else {
-        setError(data.message || 'Payment failed. Please try again.');
+        setError(getPaymentErrorMessage(data));
       }
     } catch (err) {
       setError('Server error during payment processing.');

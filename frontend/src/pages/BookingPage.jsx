@@ -10,7 +10,48 @@ const BookingPage = () => {
   const [subscriptionType, setSubscriptionType] = useState('one-time');
   const [selectedDate, setSelectedDate] = useState('');
   const [error, setError] = useState('');
+  const [insights, setInsights] = useState(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
   const navigate = useNavigate();
+
+  // Calculate week window (today through today + 6 days)
+  const getWeekWindow = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekStart = new Date(today);
+    const weekEnd = new Date(today);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    return { weekStart, weekEnd };
+  };
+
+  const { weekStart, weekEnd } = getWeekWindow();
+
+  // Format dates for input
+  const minDate = weekStart.toISOString().split('T')[0];
+  const maxDate = weekEnd.toISOString().split('T')[0];
+
+  // Fetch crowd insights
+  const fetchInsights = async () => {
+    setLoadingInsights(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/tickets/insights');
+      if (response.ok) {
+        const data = await response.json();
+        setInsights(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch insights:', err);
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInsights();
+    // Poll every 60 seconds
+    const interval = setInterval(fetchInsights, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const pricingTiers = {
     'one-time': { child: 100, adult: 200, senior: 150 },
@@ -64,6 +105,33 @@ const BookingPage = () => {
         selectedDate
       } 
     });
+  };
+
+  // Get crowd level color
+  const getCrowdColor = (level) => {
+    switch (level) {
+      case 'quiet': return 'bg-green-500';
+      case 'moderate': return 'bg-yellow-500';
+      case 'busy': return 'bg-red-500';
+      default: return 'bg-gray-400';
+    }
+  };
+
+  // Get crowd level text
+  const getCrowdText = (level) => {
+    switch (level) {
+      case 'quiet': return 'Quiet';
+      case 'moderate': return 'Moderate';
+      case 'busy': return 'Busy';
+      default: return 'Unknown';
+    }
+  };
+
+  // Check if a specific date is sold out
+  const isDateSoldOut = (dateStr) => {
+    if (!insights) return false;
+    const day = insights.days.find(d => d.date === dateStr);
+    return day && day.count >= insights.capacity;
   };
 
   return (
@@ -148,13 +216,25 @@ const BookingPage = () => {
               {subscriptionType === 'one-time' && (
                 <div className="animate-fade-in-up">
                   <label className="block text-sm font-extrabold text-smart-dark dark:text-white mb-4 uppercase tracking-wider">Select Visit Date</label>
-                  <input 
-                    type="date" 
+                  <select
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
                     className="w-full px-5 py-4 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-4 focus:ring-smart-light/20 focus:border-smart-light outline-none transition bg-smart-bg dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 font-bold text-smart-dark dark:text-white"
-                  />
+                  >
+                    <option value="">-- Select a Date --</option>
+                    {insights?.days.map((day) => (
+                      <option 
+                        key={day.date} 
+                        value={day.date}
+                        disabled={day.count >= (insights?.capacity || 100)}
+                      >
+                        {day.displayDate} - {day.crowdLevel === 'busy' ? 'SOLD OUT' : `${day.count}/${insights?.capacity} tickets`}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Available: {weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
                 </div>
               )}
 
@@ -232,6 +312,55 @@ const BookingPage = () => {
               </div>
 
             </form>
+
+            {/* Crowd Insights Panel */}
+            {subscriptionType === 'one-time' && (
+              <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+                <h3 className="text-sm font-extrabold text-smart-dark dark:text-white mb-4 uppercase tracking-wider flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                  </svg>
+                  This Week's Availability
+                </h3>
+                {loadingInsights ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-smart-light"></div>
+                  </div>
+                ) : insights && (
+                  <div className="grid grid-cols-7 gap-2">
+                    {insights.days.map((day, index) => (
+                      <div 
+                        key={index} 
+                        className={`p-2 rounded-lg text-center ${day.isToday ? 'ring-2 ring-smart-light' : ''}`}
+                      >
+                        <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{day.dayName}</div>
+                        <div className={`w-full h-8 rounded-md ${getCrowdColor(day.crowdLevel)} flex items-center justify-center`}>
+                          <span className="text-white text-xs font-bold">{day.count}</span>
+                        </div>
+                        <div className={`text-xs font-bold mt-1 ${day.crowdLevel === 'quiet' ? 'text-green-600' : day.crowdLevel === 'moderate' ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {getCrowdText(day.crowdLevel)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center justify-center gap-4 mt-3 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className="text-gray-500 dark:text-gray-400">Quiet (0-30%)</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <span className="text-gray-500 dark:text-gray-400">Moderate (31-70%)</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span className="text-gray-500 dark:text-gray-400">Busy (71-100%)</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </main>

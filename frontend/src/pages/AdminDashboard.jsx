@@ -9,7 +9,25 @@ const AdminDashboard = () => {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [manualTicketId, setManualTicketId] = useState('');
   const [scanMessage, setScanMessage] = useState(null);
+  const [insights, setInsights] = useState(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
   const scannerRef = useRef(null);
+
+  // Fetch crowd insights
+  const fetchInsights = async () => {
+    setLoadingInsights(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/tickets/insights');
+      if (response.ok) {
+        const data = await response.json();
+        setInsights(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch insights:', err);
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -49,6 +67,11 @@ const AdminDashboard = () => {
     };
 
     fetchData();
+    fetchInsights();
+    
+    // Poll insights every 60 seconds
+    const interval = setInterval(fetchInsights, 60000);
+    return () => clearInterval(interval);
   }, [navigate]);
 
   const fetchStats = async () => {
@@ -310,6 +333,67 @@ const AdminDashboard = () => {
             </div>
           </div>
 
+        </div>
+
+        {/* Crowd Insights Panel */}
+        <div className="mb-10 bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl border border-smart-light/10 dark:border-gray-700 overflow-hidden">
+          <div className="bg-smart-bg dark:bg-gray-900 px-8 py-6 border-b border-smart-light/10 flex justify-between items-center">
+            <h2 className="text-xl font-black text-smart-dark dark:text-white flex items-center tracking-tighter uppercase italic">
+              <svg className="w-6 h-6 mr-3 text-smart-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+              </svg>
+              This Week's Crowd Insights
+            </h2>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Auto-refresh: 60s</span>
+            </div>
+          </div>
+          <div className="p-8">
+            {loadingInsights ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-smart-light"></div>
+              </div>
+            ) : insights && (
+              <>
+                <div className="grid grid-cols-7 gap-4 mb-6">
+                  {insights.days.map((day, index) => (
+                    <div 
+                      key={index} 
+                      className={`p-4 rounded-2xl text-center ${day.isToday ? 'ring-2 ring-smart-light bg-smart-light/5' : 'bg-smart-bg/30 dark:bg-gray-900/50'}`}
+                    >
+                      <div className="text-xs font-black text-gray-500 dark:text-gray-400 mb-2">{day.dayName}</div>
+                      <div className={`w-full h-12 rounded-xl flex items-center justify-center ${day.crowdLevel === 'quiet' ? 'bg-green-100 dark:bg-green-900/30' : day.crowdLevel === 'moderate' ? 'bg-yellow-100 dark:bg-yellow-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                        <span className={`text-lg font-black ${day.crowdLevel === 'quiet' ? 'text-green-600' : day.crowdLevel === 'moderate' ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {day.count}
+                        </span>
+                      </div>
+                      <div className={`text-xs font-black mt-2 ${day.crowdLevel === 'quiet' ? 'text-green-600' : day.crowdLevel === 'moderate' ? 'text-yellow-600' : 'text-red-600'}`}>
+                        {day.crowdLevel === 'quiet' ? '🟢 Quiet' : day.crowdLevel === 'moderate' ? '🟡 Moderate' : '🔴 Busy'}
+                      </div>
+                      <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{day.displayDate}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-center gap-8 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className="text-gray-500 dark:text-gray-400">Quiet (0-30%)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <span className="text-gray-500 dark:text-gray-400">Moderate (31-70%)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span className="text-gray-500 dark:text-gray-400">Busy (71-100%)</span>
+                  </div>
+                  <div className="text-gray-400 dark:text-gray-500">
+                    Daily Capacity: {insights.capacity}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="mb-10 bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl border border-smart-light/10 dark:border-gray-700 overflow-hidden">
