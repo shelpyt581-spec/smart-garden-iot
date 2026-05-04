@@ -83,15 +83,15 @@ app.use('/api/admin', adminRoutes);
 
 // Basic route to test the server
 app.get('/', (req, res) => {
-    res.json({ message: 'Smart Park API is running' });
+  res.json({ message: 'Smart Park API is running' });
 });
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-    console.error('Global Error:', err);
-    res.status(500).json({ message: err.message });
+  console.error('Global Error:', err);
+  res.status(500).json({ message: err.message });
 });
 
 app.listen(PORT, () => {
-    console.log(`Backend server is running on http://localhost:${PORT}`);
+  console.log(`Backend server is running on http://localhost:${PORT}`);
 });

@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const twilio = require('twilio');
+const nodemailer = require('nodemailer');
+const QRCode = require('qrcode');
 const Ticket = require('../models/Ticket');
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '12345678901234567890123456789012';
@@ -231,6 +233,98 @@ const sendTicketsViaWhatsApp = async ({ user, tickets, selectedDate, subscriptio
     };
 };
 
+const buildEmailTicketHtml = ({ user, tickets, selectedDate, subscriptionPlan }) => {
+    const ticketList = tickets
+        .map((ticket) => `
+            <li>
+                <strong>${ticket.ticketType.toUpperCase()} Ticket</strong><br/>
+                Ticket ID: ${ticket._id}<br/>
+                Price: ${ticket.price} EGP
+            </li>
+        `)
+        .join('');
+
+    const validity = subscriptionPlan === 'monthly'
+        ? 'Valid for 30 days from today.'
+        : `Valid only on ${new Date(selectedDate).toLocaleDateString()}.`;
+
+    return `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <h2>Smart Park Ticket Confirmation</h2>
+            <p>Hello ${user.name},</p>
+            <p>Thank you for booking your ticket.</p>
+            <p>Your QR code ticket image is attached to this email.</p>
+
+            <h3>Your Tickets:</h3>
+            <ul>
+                ${ticketList}
+            </ul>
+
+            <p><strong>Validity:</strong> ${validity}</p>
+            <p>Please show the attached QR code at the entrance.</p>
+        </div>
+    `;
+};
+
+const sendTicketsViaEmail = async ({ user, tickets, selectedDate, subscriptionPlan }) => {
+    if (!tickets.length) {
+        return { status: 'skipped', reason: 'No tickets were created' };
+    }
+
+    if (!user.email) {
+        return { status: 'skipped', reason: 'User has no email address' };
+    }
+
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        return { status: 'skipped', reason: 'Email credentials are not configured' };
+    }
+
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+
+    const attachments = [];
+
+    for (const ticket of tickets) {
+        const qrData = JSON.stringify({
+            ticketId: ticket._id.toString(),
+            userId: user._id.toString(),
+            ticketType: ticket.ticketType,
+            subscriptionPlan: ticket.subscriptionPlan,
+            validFrom: ticket.validFrom,
+            validUntil: ticket.validUntil
+        });
+
+        const qrImage = await QRCode.toBuffer(qrData);
+
+        attachments.push({
+            filename: `smart-park-ticket-${ticket._id}.png`,
+            content: qrImage,
+            contentType: 'image/png'
+        });
+    }
+
+    console.log(`Sending ticket email to ${user.email}`);
+
+    const info = await transporter.sendMail({
+        from: `"Smart Park" <${process.env.EMAIL_USER}>`,
+        to: user.email,
+        subject: 'Your Smart Park Ticket QR Code',
+        html: buildEmailTicketHtml({ user, tickets, selectedDate, subscriptionPlan }),
+        attachments
+    });
+
+    return {
+        status: 'sent',
+        messageId: info.messageId,
+        to: user.email
+    };
+};
+
 const checkout = async (req, res) => {
     try {
         if (!req.body.quantities || !req.body.subscriptionPlan) {
@@ -297,7 +391,7 @@ const checkout = async (req, res) => {
                 if (subscriptionPlan === 'monthly') {
                     validUntil.setDate(validUntil.getDate() + 30);
                 } else {
-                    validFrom = new Date(selectedDate);
+   validFrom = new Date(selectedDate);
                     validFrom.setHours(0, 0, 0, 0);
                     validUntil = new Date(selectedDate);
                     validUntil.setHours(23, 59, 59, 999);
@@ -333,7 +427,9 @@ const checkout = async (req, res) => {
         }
 
         const savedTickets = await Ticket.insertMany(newTickets);
+
         let whatsappResult = { status: 'skipped', reason: 'Not attempted' };
+        let emailResult = { status: 'skipped', reason: 'Not attempted' };
 
         try {
             whatsappResult = await sendTicketsViaWhatsApp({
@@ -354,10 +450,27 @@ const checkout = async (req, res) => {
             console.error('Twilio More Info:', twError.moreInfo);
         }
 
+        try {
+            emailResult = await sendTicketsViaEmail({
+                user: req.user,
+                tickets: savedTickets,
+                selectedDate,
+                subscriptionPlan
+            });
+            console.log('Email ticket result:', emailResult);
+        } catch (emailError) {
+            emailResult = {
+                status: 'failed',
+                message: emailError.message
+            };
+            console.error('Email Error Message:', emailError.message);
+        }
+
         return res.status(200).json({
-            message: 'Checkout successful',
+            message: 'Checkout successful. Ticket QR code sent to email.',
             tickets: savedTickets,
             whatsapp: whatsappResult,
+            email: emailResult,
             card: cardResult
         });
     } catch (error) {
@@ -409,4 +522,4 @@ const getTicketInsights = async (req, res) => {
     }
 };
 
-module.exports = { checkout, getTicketHistory, getTicketInsights };
+module.exports = { checkout, getTicketHistory, getTicketInsights };            
