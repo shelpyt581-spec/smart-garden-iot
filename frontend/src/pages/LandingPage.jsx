@@ -11,6 +11,10 @@ const LandingPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotMessage, setForgotMessage] = useState({ type: '', text: '' });
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleAuth = async (e) => {
@@ -50,6 +54,33 @@ const LandingPage = () => {
       setError(`Server connection failed: ${err.message}`);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setForgotMessage({ type: '', text: '' });
+    setIsForgotLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/users/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setForgotMessage({ type: 'success', text: 'Reset link sent! Please check your email inbox.' });
+        setForgotEmail('');
+      } else {
+        setForgotMessage({ type: 'error', text: data.message || 'Failed to send reset link.' });
+      }
+    } catch (err) {
+      setForgotMessage({ type: 'error', text: 'Server connection failed.' });
+    } finally {
+      setIsForgotLoading(false);
     }
   };
 
@@ -180,6 +211,17 @@ const LandingPage = () => {
                   placeholder="••••••••"
                   required
                 />
+                {isLogin && (
+                  <div className="text-right mt-1">
+                    <button 
+                      type="button"
+                      onClick={() => setShowForgotModal(true)}
+                      className="text-[10px] font-black text-smart-light dark:text-smart-glow uppercase tracking-widest hover:underline"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
               </div>
               <button 
                 type="submit" 
@@ -207,6 +249,70 @@ const LandingPage = () => {
           </div>
         </div>
       </main>
+
+      <ForgotPasswordModal 
+        show={showForgotModal}
+        onClose={() => {
+          setShowForgotModal(false);
+          setForgotMessage({ type: '', text: '' });
+        }}
+        email={forgotEmail}
+        setEmail={setForgotEmail}
+        onSubmit={handleForgotPassword}
+        isLoading={isForgotLoading}
+        message={forgotMessage}
+      />
+    </div>
+  );
+};
+
+const ForgotPasswordModal = ({ show, onClose, email, setEmail, onSubmit, isLoading, message }) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-[40px] shadow-2xl overflow-hidden border border-smart-light/20 transform transition-all scale-100">
+        <div className="bg-smart-dark p-8 flex justify-between items-center border-b border-white/10">
+          <h2 className="text-2xl font-black text-smart-glow italic uppercase tracking-tighter text-white">Reset Access</h2>
+          <button onClick={onClose} className="text-white hover:text-smart-glow transition-colors">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        
+        <div className="p-10">
+          {message.text && (
+            <div className={`mb-6 p-4 rounded-2xl font-bold text-sm border ${message.type === 'success' ? 'bg-smart-light/10 border-smart-light text-smart-dark dark:text-smart-glow' : 'bg-red-50 border-red-500 text-red-700 dark:bg-red-900/30 dark:text-red-200'}`}>
+              {message.text}
+            </div>
+          )}
+
+          <p className="text-smart-gray dark:text-gray-400 mb-8 font-medium">
+            Enter the email address associated with your account and we'll send you a link to reset your password.
+          </p>
+
+          <form onSubmit={onSubmit} className="space-y-6">
+            <div>
+              <label className="block text-xs font-black text-smart-dark dark:text-white mb-3 uppercase tracking-widest">Email Address</label>
+              <input 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-6 py-4 rounded-2xl border-2 border-smart-light/10 bg-smart-bg dark:bg-gray-700 text-smart-dark dark:text-white focus:ring-4 focus:ring-smart-light/20 focus:border-smart-light outline-none transition font-medium"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+            
+            <button 
+              type="submit" 
+              disabled={isLoading}
+              className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl hover:-translate-y-1 ${isLoading ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-smart-light hover:bg-smart-dark text-white'}`}
+            >
+              {isLoading ? 'Processing...' : 'Send Reset Link'}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };

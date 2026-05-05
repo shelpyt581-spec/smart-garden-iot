@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
 
 const Payment = () => {
   const location = useLocation();
@@ -148,47 +147,30 @@ const Payment = () => {
   if (success) {
     return (
       <div className="min-h-screen bg-smart-bg dark:bg-black flex items-center justify-center p-6 transition-colors duration-300">
-        <div className="bg-white dark:bg-gray-800 p-12 rounded-3xl shadow-xl border-t-8 border-smart-light text-center max-w-lg w-full border border-smart-light/30 dark:border-smart-light/10">
-          <div className="w-24 h-24 bg-smart-light/20 rounded-full flex items-center justify-center mx-auto mb-8">
-            <svg className="w-12 h-12 text-smart-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+        <div className="bg-white dark:bg-gray-800 p-12 rounded-[40px] shadow-2xl border-t-8 border-smart-light text-center max-w-xl w-full border border-smart-light/30 dark:border-smart-light/10 transform transition-all animate-fade-in">
+          <div className="w-24 h-24 bg-smart-light/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <svg className="w-12 h-12 text-smart-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
           </div>
-          <h2 className="text-4xl font-extrabold text-smart-dark dark:text-smart-glow mb-6 tracking-tight italic">Tickets Generated!</h2>
-          {generatedTickets.length > 0 && (
-            <div className="grid gap-8 place-items-center mb-6">
-              {generatedTickets.map((t) => (
-                <div key={t._id} className="flex flex-col items-center justify-center w-full">
-                  <div className="p-4 bg-white border-4 border-smart-dark dark:border-smart-light rounded-2xl shadow-sm inline-block mb-4">
-                      <QRCodeSVG value={t._id} size={200} level="H" />
-                  </div>
-                  <div className="bg-smart-bg dark:bg-gray-700 px-6 py-3 rounded-xl border border-smart-light/20 shadow-inner w-full max-w-sm mb-4 text-center">
-                     <p className="text-sm text-smart-dark dark:text-smart-light font-extrabold uppercase tracking-widest mb-2 capitalize">
-                       {t.ticketType} Pass
-                     </p>
-                     <p className="text-[10px] text-smart-gray dark:text-gray-400 font-bold uppercase tracking-widest mb-1">Ticket ID</p>
-                     <p className="font-mono text-lg font-black text-smart-dark dark:text-white tracking-widest select-all">{t._id}</p>
-                  </div>
-                  
-                  {t.validFrom && (
-                    <div className="mt-2 text-center w-full max-w-sm mb-4">
-                      {t.subscriptionPlan === 'monthly' || t.subscriptionType === 'monthly' ? (
-                        <p className="font-semibold text-smart-dark dark:text-white">Valid from: {new Date(t.validFrom).toLocaleDateString()} to {new Date(t.validUntil).toLocaleDateString()}</p>
-                      ) : (
-                        <p className="font-semibold text-smart-light font-bold">Valid strictly on: {new Date(t.validFrom).toLocaleDateString()}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          <p className="text-smart-gray dark:text-gray-300 mb-10 font-medium leading-relaxed">
-            Please screenshot this QR code or view it later in your Profile's Purchase History to scan at the gate.
+          
+          <h2 className="text-4xl md:text-5xl font-black text-smart-dark dark:text-smart-glow mb-6 tracking-tighter italic uppercase">
+            🎉 Payment Successful!
+          </h2>
+          
+          <p className="text-xl md:text-2xl text-smart-gray dark:text-gray-300 mb-10 font-bold leading-relaxed max-w-md mx-auto">
+            Thank you! You will receive your tickets via email shortly.
           </p>
+
+          <div className="bg-smart-bg dark:bg-gray-900 p-6 rounded-3xl border border-smart-light/10 mb-10">
+            <p className="text-sm text-smart-gray dark:text-gray-400 font-medium">
+              You can also find all your active tickets and QR codes anytime in your <strong className="text-smart-dark dark:text-white">Profile History</strong>.
+            </p>
+          </div>
+
           <button 
             onClick={() => navigate('/profile')}
-            className="block bg-smart-light hover:bg-smart-dark text-white font-extrabold py-4 px-10 rounded-full transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 w-full"
+            className="block bg-smart-light hover:bg-smart-dark text-white font-black py-5 px-10 rounded-2xl transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 w-full uppercase tracking-widest text-sm"
           >
-            Go to Profile
+            Go to Profile History
           </button>
         </div>
       </div>

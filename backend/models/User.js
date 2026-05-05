@@ -39,7 +39,9 @@ const userSchema = new mongoose.Schema({
     savedCards: [{
         last4Digits: String,
         encryptedData: String
-    }]
+    }],
+    resetPasswordToken: String,
+    resetPasswordExpires: Date
 }, {
     timestamps: true
 });

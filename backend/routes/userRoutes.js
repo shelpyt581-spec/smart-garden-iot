@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getUserProfile, updateUserProfile, deleteSavedCard } = require('../controllers/userController');
+const { getUserProfile, updateUserProfile, deleteSavedCard, forgotPassword, resetPassword } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.route('/profile')
@@ -8,5 +8,8 @@ router.route('/profile')
     .put(protect, updateUserProfile);
 
 router.delete('/profile/cards/:cardId', protect, deleteSavedCard);
+
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 module.exports = router;

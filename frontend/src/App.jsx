@@ -9,6 +9,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
 import Profile from './pages/Profile';
 import ParkMap from './pages/ParkMap';
+import ResetPassword from './pages/ResetPassword';
 import { Navigate } from 'react-router-dom';
 
 // Admin Protection Component
@@ -53,6 +54,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/map" element={<ParkMap />} />
             <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route 
               path="/admin/dashboard" 
               element={

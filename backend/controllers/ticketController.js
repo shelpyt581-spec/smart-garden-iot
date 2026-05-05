@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const twilio = require('twilio');
 const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
 const Ticket = require('../models/Ticket');
@@ -7,90 +6,6 @@ const Ticket = require('../models/Ticket');
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '12345678901234567890123456789012';
 const IV_LENGTH = 16;
 const DAILY_CAPACITY = 100;
-const TWILIO_SANDBOX_WHATSAPP_NUMBER = '+14155238886';
-
-let cachedTwilioClient = null;
-
-const getTwilioClient = () => {
-    if (cachedTwilioClient) {
-        return cachedTwilioClient;
-    }
-
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-    if (!accountSid || !authToken) {
-        return null;
-    }
-
-    cachedTwilioClient = twilio(accountSid, authToken);
-    return cachedTwilioClient;
-};
-
-const getDefaultCountryCode = () => {
-    const countryCode = process.env.TWILIO_DEFAULT_COUNTRY_CODE || '20';
-    return countryCode.replace(/\D/g, '') || '20';
-};
-
-const normalizePhoneNumber = (rawPhone) => {
-    if (!rawPhone) {
-        return null;
-    }
-
-    const defaultCountryCode = getDefaultCountryCode();
-    let phone = String(rawPhone)
-        .trim()
-        .replace(/^whatsapp:/i, '')
-        .trim()
-        .replace(/[^\d+]/g, '');
-
-    if (phone.startsWith('00')) {
-        phone = `+${phone.slice(2)}`;
-    }
-
-    if (phone.startsWith('+')) {
-        const normalized = defaultCountryCode === '20' && phone.startsWith('+200')
-            ? `+20${phone.slice(4)}`
-            : phone;
-
-        return /^\+\d{8,15}$/.test(normalized) ? normalized : null;
-    }
-
-    const digits = phone.replace(/\D/g, '');
-    if (!digits) {
-        return null;
-    }
-
-    let normalized;
-    if (digits.startsWith(defaultCountryCode)) {
-        normalized = `+${digits}`;
-    } else if (defaultCountryCode === '20' && /^1\d{9}$/.test(digits)) {
-        normalized = `+20${digits}`;
-    } else if (digits.startsWith('0')) {
-        normalized = `+${defaultCountryCode}${digits.slice(1)}`;
-    } else {
-        normalized = `+${digits}`;
-    }
-
-    if (defaultCountryCode === '20' && normalized.startsWith('+200')) {
-        normalized = `+20${normalized.slice(4)}`;
-    }
-
-    return /^\+\d{8,15}$/.test(normalized) ? normalized : null;
-};
-
-const toWhatsAppAddress = (rawPhone) => {
-    const normalized = normalizePhoneNumber(rawPhone);
-    return normalized ? `whatsapp:${normalized}` : null;
-};
-
-const maskAddress = (address) => {
-    if (!address) {
-        return 'unknown';
-    }
-
-    return address.replace(/\d(?=\d{4})/g, '*');
-};
 
 const getCurrentWeekWindow = () => {
     const now = new Date();
@@ -165,73 +80,6 @@ const savePaymentCardIfRequested = async ({ user, cardNumber, expiry, saveCard, 
     return { status: 'saved', last4Digits };
 };
 
-const buildWhatsAppTicketBody = ({ user, tickets, selectedDate, subscriptionPlan }) => {
-    const ticketSummary = tickets
-        .map((ticket) => `- ${ticket.ticketType.toUpperCase()} pass, ID: ${ticket._id}`)
-        .join('\n');
-
-    const validity = subscriptionPlan === 'monthly'
-        ? 'Valid for 30 days from today'
-        : `Valid only on ${new Date(selectedDate).toLocaleDateString()}`;
-
-    return [
-        'Smart Park Ticket Confirmation',
-        '',
-        `Thank you for your purchase, ${user.name}.`,
-        '',
-        'Your tickets:',
-        ticketSummary,
-        '',
-        `Validity: ${validity}`,
-        '',
-        'Show these ticket IDs at the gate, or open your profile in Smart Garden to display the QR codes.'
-    ].join('\n');
-};
-
-const sendTicketsViaWhatsApp = async ({ user, tickets, selectedDate, subscriptionPlan }) => {
-    if (!tickets.length) {
-        return { status: 'skipped', reason: 'No tickets were created' };
-    }
-
-    if (!user.phone) {
-        return { status: 'skipped', reason: 'User has no phone number' };
-    }
-
-    const client = getTwilioClient();
-    if (!client) {
-        return { status: 'skipped', reason: 'Twilio credentials are not configured' };
-    }
-
-    const from = toWhatsAppAddress(process.env.TWILIO_WHATSAPP_NUMBER || TWILIO_SANDBOX_WHATSAPP_NUMBER);
-    const to = toWhatsAppAddress(user.phone);
-
-    if (!from) {
-        return { status: 'skipped', reason: 'Twilio WhatsApp sender number is invalid' };
-    }
-
-    if (!to) {
-        return { status: 'skipped', reason: 'User phone number is not a valid E.164 number' };
-    }
-
-    const messagePayload = {
-        from,
-        to,
-        body: buildWhatsAppTicketBody({ user, tickets, selectedDate, subscriptionPlan })
-    };
-
-    if (process.env.TWILIO_STATUS_CALLBACK_URL) {
-        messagePayload.statusCallback = process.env.TWILIO_STATUS_CALLBACK_URL;
-    }
-
-    console.log(`Sending WhatsApp ticket message from ${maskAddress(from)} to ${maskAddress(to)}`);
-    const message = await client.messages.create(messagePayload);
-
-    return {
-        status: 'sent',
-        sid: message.sid,
-        to: maskAddress(to)
-    };
-};
 
 const buildEmailTicketHtml = ({ user, tickets, selectedDate, subscriptionPlan }) => {
     const ticketList = tickets
@@ -308,7 +156,7 @@ const sendTicketsViaEmail = async ({ user, tickets, selectedDate, subscriptionPl
         });
     }
 
-    console.log(`Sending ticket email to ${user.email}`);
+    console.log(`Attempting to send ticket email to ${user.email} with ${attachments.length} attachments...`);
 
     const info = await transporter.sendMail({
         from: `"Smart Park" <${process.env.EMAIL_USER}>`,
@@ -317,6 +165,8 @@ const sendTicketsViaEmail = async ({ user, tickets, selectedDate, subscriptionPl
         html: buildEmailTicketHtml({ user, tickets, selectedDate, subscriptionPlan }),
         attachments
     });
+
+    console.log(`Email successfully sent to ${user.email}. MessageID: ${info.messageId}`);
 
     return {
         status: 'sent',
@@ -391,7 +241,7 @@ const checkout = async (req, res) => {
                 if (subscriptionPlan === 'monthly') {
                     validUntil.setDate(validUntil.getDate() + 30);
                 } else {
-   validFrom = new Date(selectedDate);
+                    validFrom = new Date(selectedDate);
                     validFrom.setHours(0, 0, 0, 0);
                     validUntil = new Date(selectedDate);
                     validUntil.setHours(23, 59, 59, 999);
@@ -428,27 +278,7 @@ const checkout = async (req, res) => {
 
         const savedTickets = await Ticket.insertMany(newTickets);
 
-        let whatsappResult = { status: 'skipped', reason: 'Not attempted' };
         let emailResult = { status: 'skipped', reason: 'Not attempted' };
-
-        try {
-            whatsappResult = await sendTicketsViaWhatsApp({
-                user: req.user,
-                tickets: savedTickets,
-                selectedDate,
-                subscriptionPlan
-            });
-            console.log('WhatsApp ticket result:', whatsappResult);
-        } catch (twError) {
-            whatsappResult = {
-                status: 'failed',
-                code: twError.code,
-                message: twError.message
-            };
-            console.error('Twilio Error Code:', twError.code);
-            console.error('Twilio Error Message:', twError.message);
-            console.error('Twilio More Info:', twError.moreInfo);
-        }
 
         try {
             emailResult = await sendTicketsViaEmail({
@@ -463,13 +293,12 @@ const checkout = async (req, res) => {
                 status: 'failed',
                 message: emailError.message
             };
-            console.error('Email Error Message:', emailError.message);
+            console.error('Email Delivery Error:', emailError);
         }
 
         return res.status(200).json({
             message: 'Checkout successful. Ticket QR code sent to email.',
             tickets: savedTickets,
-            whatsapp: whatsappResult,
             email: emailResult,
             card: cardResult
         });
