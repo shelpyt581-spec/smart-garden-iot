@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
 const Ticket = require('../models/Ticket');
+const PromoCode = require('../models/PromoCode');
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '12345678901234567890123456789012';
 const IV_LENGTH = 16;
@@ -189,7 +190,8 @@ const checkout = async (req, res) => {
             expiry,
             saveCard,
             useSavedCard,
-            savedCardId
+            savedCardId,
+            promoCode
         } = req.body;
 
         if (subscriptionPlan === 'one-time') {
@@ -294,6 +296,14 @@ const checkout = async (req, res) => {
                 message: emailError.message
             };
             console.error('Email Delivery Error:', emailError);
+        }
+
+        // Consume Promo Code if payment succeeded
+        if (promoCode) {
+            await PromoCode.findOneAndUpdate(
+                { code: promoCode, userId: req.user._id, isUsed: false },
+                { isUsed: true }
+            );
         }
 
         return res.status(200).json({

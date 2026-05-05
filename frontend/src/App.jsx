@@ -12,6 +12,7 @@ import ParkMap from './pages/ParkMap';
 import ResetPassword from './pages/ResetPassword';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
+import GamePage from './pages/GamePage';
 import { Navigate } from 'react-router-dom';
 
 // Admin Protection Component
@@ -72,6 +73,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Profile />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/rewards" 
+              element={
+                <PrivateRoute>
+                  <GamePage />
                 </PrivateRoute>
               } 
             />

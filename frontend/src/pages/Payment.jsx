@@ -22,6 +22,13 @@ const Payment = () => {
   const [savedCards, setSavedCards] = useState([]);
   const [selectedSavedCard, setSelectedSavedCard] = useState('');
   const [useSavedCard, setUseSavedCard] = useState(false);
+  
+  // Promo Code State
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [isPromoValid, setIsPromoValid] = useState(false);
+  const [promoError, setPromoError] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
 
   const state = location.state;
 
@@ -80,6 +87,39 @@ const Payment = () => {
     return data?.message || data?.error || data?.details || 'Payment failed. Please try again.';
   };
 
+  const handleValidatePromo = async () => {
+    if (!promoCodeInput) return;
+    setPromoLoading(true);
+    setPromoError('');
+    const token = localStorage.getItem('token');
+    
+    try {
+      const res = await fetch('http://localhost:5000/api/promo/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ code: promoCodeInput })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setPromoDiscount(data.discount);
+        setIsPromoValid(true);
+      } else {
+        setPromoError(data.message || 'Invalid promo code');
+        setIsPromoValid(false);
+      }
+    } catch (err) {
+      setPromoError('Validation failed');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const discountedPrice = totalPrice - (totalPrice * (promoDiscount / 100));
+
   const handlePayment = async (e) => {
     e.preventDefault();
     setIsProcessing(true);
@@ -123,7 +163,8 @@ const Payment = () => {
             paymentMethod,
             cardNumber: useSavedCard ? undefined : cardNumber.replace(/\s+/g, ''),
             expiry: useSavedCard ? undefined : expiry,
-            cvv: useSavedCard ? undefined : cvv
+            cvv: useSavedCard ? undefined : cvv,
+            promoCode: isPromoValid ? promoCodeInput : undefined
         })
       });
 
@@ -218,9 +259,42 @@ const Payment = () => {
             </div>
 
             <div className="border-t border-white/10 pt-6 mt-auto">
+              {/* Promo Code Input */}
+              <div className="mb-6">
+                <label className="block text-xs font-black text-white/50 uppercase tracking-widest mb-2">Have a Reward Code?</label>
+                <div className="flex space-x-2">
+                  <input 
+                    type="text" 
+                    placeholder="Enter Promo Code"
+                    value={promoCodeInput}
+                    onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                    disabled={isPromoValid}
+                    className="flex-grow bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-smart-glow transition-all"
+                  />
+                  <button 
+                    type="button"
+                    onClick={handleValidatePromo}
+                    disabled={promoLoading || isPromoValid || !promoCodeInput}
+                    className={`px-4 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${isPromoValid ? 'bg-green-500 text-white' : 'bg-smart-glow text-smart-dark hover:scale-105'}`}
+                  >
+                    {promoLoading ? '...' : isPromoValid ? '✓' : 'Apply'}
+                  </button>
+                </div>
+                {promoError && <p className="text-red-400 text-[10px] font-bold mt-2 uppercase tracking-widest">{promoError}</p>}
+                {isPromoValid && <p className="text-green-400 text-[10px] font-bold mt-2 uppercase tracking-widest">Discount Applied: {promoDiscount}% OFF!</p>}
+              </div>
+
               <div className="flex justify-between items-end">
                 <span className="text-white/60 uppercase tracking-widest font-bold">Total to Pay</span>
-                <span className="text-4xl font-black text-smart-glow">{totalPrice} <span className="text-lg text-white/50">EGP</span></span>
+                <div className="text-right">
+                  {isPromoValid && (
+                    <p className="text-white/40 line-through text-sm font-bold mb-[-4px]">{totalPrice} EGP</p>
+                  )}
+                  <p className="text-4xl font-black text-smart-glow">
+                    {isPromoValid ? Math.round(discountedPrice) : totalPrice} 
+                    <span className="text-lg text-white/50 ml-1">EGP</span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>

@@ -43,6 +43,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
           <Link to="/about" className={isActive('/about')}>About Us</Link>
           <Link to="/map" className={isActive('/map')}>Park Map</Link>
           <Link to="/book" className={isActive('/book')}>Book Tickets</Link>
+          <Link to="/rewards" className={isActive('/rewards')}>Play & Win</Link>
           
           {/* Theme Toggle Button */}
           <div className="ml-2">

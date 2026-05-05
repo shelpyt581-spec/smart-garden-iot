@@ -41,7 +41,13 @@ const userSchema = new mongoose.Schema({
         encryptedData: String
     }],
     resetPasswordToken: String,
-    resetPasswordExpires: Date
+    resetPasswordExpires: Date,
+    gameStats: {
+        trialsUsed: { type: Number, default: 0 },
+        hasWon: { type: Boolean, default: false },
+        lastPlayedMonth: { type: Number, default: () => new Date().getMonth() + 1 },
+        lastPlayedYear: { type: Number, default: () => new Date().getFullYear() }
+    }
 }, {
     timestamps: true
 });

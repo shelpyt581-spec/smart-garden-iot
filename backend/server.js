@@ -10,6 +10,8 @@ const authRoutes = require('./routes/authRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const userRoutes = require('./routes/userRoutes');
+const gameRoutes = require('./routes/gameRoutes');
+const promoRoutes = require('./routes/promoRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -80,6 +82,8 @@ app.use('/api', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/game', gameRoutes);
+app.use('/api/promo', promoRoutes);
 
 // Basic route to test the server
 app.get('/', (req, res) => {
