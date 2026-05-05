@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import WeatherWidget from '../components/WeatherWidget';
 
 const BookingPage = () => {
   const [tickets, setTickets] = useState({
@@ -146,6 +147,10 @@ const BookingPage = () => {
               <p className="text-white/80 text-lg mb-8 leading-relaxed">
                 Choose the tickets that best fit your group. Our monthly subscriptions offer unlimited access to all IoT park features.
               </p>
+              
+              <div className="my-10 w-full flex justify-center">
+                <WeatherWidget />
+              </div>
             </div>
             
             <div className="space-y-6">
