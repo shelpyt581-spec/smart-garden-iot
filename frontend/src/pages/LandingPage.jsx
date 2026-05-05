@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MonkeyForm from '../components/MonkeyForm.jsx';
 
 const LandingPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -123,130 +124,26 @@ const LandingPage = () => {
 
         {/* Login/Signup Section */}
         <div className="flex-1 flex flex-col justify-center w-full max-w-md" id="login">
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl border border-smart-light/30 dark:border-smart-light/20 transition-colors">
-            <h2 className="text-3xl font-black text-smart-dark dark:text-smart-glow mb-6 text-center italic">
-              {isLogin ? 'Visitor Login' : 'Create Account'}
-            </h2>
-            
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-200 rounded-r-lg font-medium">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleAuth} className="space-y-5">
-              {!isLogin && (
-                <>
-                  <div>
-                    <label className="block text-sm font-extrabold text-smart-dark dark:text-white mb-2 uppercase tracking-wide">Full Name</label>
-                    <input 
-                      type="text" 
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-4 focus:ring-smart-light/20 focus:border-smart-light outline-none transition bg-smart-bg dark:bg-gray-700 text-smart-dark dark:text-white font-medium"
-                      placeholder="John Doe"
-                      required={!isLogin}
-                    />
-                  </div>
-                  <div className="flex space-x-4">
-                    <div className="flex-1">
-                      <label className="block text-sm font-extrabold text-smart-dark dark:text-white mb-2 uppercase tracking-wide">Age</label>
-                      <input 
-                        type="number" 
-                        value={age}
-                        onChange={(e) => setAge(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-4 focus:ring-smart-light/20 focus:border-smart-light outline-none transition bg-smart-bg dark:bg-gray-700 text-smart-dark dark:text-white font-medium"
-                        placeholder="25"
-                        min="1"
-                        max="120"
-                        required={!isLogin}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-sm font-extrabold text-smart-dark dark:text-white mb-2 uppercase tracking-wide">Phone Number</label>
-                      <input 
-                        type="tel" 
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-4 focus:ring-smart-light/20 focus:border-smart-light outline-none transition bg-smart-bg dark:bg-gray-700 text-smart-dark dark:text-white font-medium"
-                        placeholder="555-0192"
-                        required={!isLogin}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center mt-2 p-3 bg-smart-bg dark:bg-gray-700 rounded-xl border border-smart-light/10">
-                    <input 
-                      type="checkbox" 
-                      id="hasDisability"
-                      checked={hasDisability}
-                      onChange={(e) => setHasDisability(e.target.checked)}
-                      className="w-5 h-5 text-smart-light border-gray-300 dark:border-gray-500 rounded focus:ring-smart-light cursor-pointer"
-                    />
-                    <label htmlFor="hasDisability" className="ml-3 block text-sm font-medium text-smart-gray dark:text-gray-300 cursor-pointer select-none">
-                      I require accessibility features
-                    </label>
-                  </div>
-                </>
-              )}
-              
-              <div>
-                <label className="block text-sm font-extrabold text-smart-dark dark:text-white mb-2 uppercase tracking-wide">Email Address</label>
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-4 focus:ring-smart-light/20 focus:border-smart-light outline-none transition bg-smart-bg dark:bg-gray-700 text-smart-dark dark:text-white font-medium"
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-extrabold text-smart-dark dark:text-white mb-2 uppercase tracking-wide">Password</label>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-4 focus:ring-smart-light/20 focus:border-smart-light outline-none transition bg-smart-bg dark:bg-gray-700 text-smart-dark dark:text-white font-medium"
-                  placeholder="••••••••"
-                  required
-                />
-                {isLogin && (
-                  <div className="text-right mt-1">
-                    <button 
-                      type="button"
-                      onClick={() => setShowForgotModal(true)}
-                      className="text-[10px] font-black text-smart-light dark:text-smart-glow uppercase tracking-widest hover:underline"
-                    >
-                      Forgot Password?
-                    </button>
-                  </div>
-                )}
-              </div>
-              <button 
-                type="submit" 
-                disabled={isLoading}
-                className={`w-full font-black py-4 rounded-xl transition-all shadow-lg hover:-translate-y-1 ${isLoading ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-smart-light hover:bg-smart-dark text-white hover:shadow-2xl'}`}
-              >
-                {isLoading ? 'Processing...' : (isLogin ? 'Sign In & Book Tickets' : 'Register & Book Tickets')}
-              </button>
-            </form>
-            <div className="mt-6 text-center">
-              <p className="text-sm text-smart-gray dark:text-gray-400">
-                {isLogin ? "Don't have an account?" : "Already have an account?"}
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setIsLogin(!isLogin);
-                    setError('');
-                  }} 
-                  className="ml-2 text-smart-light dark:text-smart-glow font-black hover:underline"
-                >
-                  {isLogin ? "Register here" : "Sign in here"}
-                </button>
-              </p>
-            </div>
-          </div>
+          <MonkeyForm 
+            email={email}
+            setEmail={setEmail}
+            name={name}
+            setName={setName}
+            age={age}
+            setAge={setAge}
+            phone={phone}
+            setPhone={setPhone}
+            hasDisability={hasDisability}
+            setHasDisability={setHasDisability}
+            password={password}
+            setPassword={setPassword}
+            onLogin={handleAuth}
+            isLoading={isLoading}
+            error={error}
+            isLogin={isLogin}
+            setIsLogin={setIsLogin}
+            setShowForgotModal={setShowForgotModal}
+          />
         </div>
       </main>
 
