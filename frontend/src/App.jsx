@@ -6,7 +6,6 @@ import BookingPage from './pages/BookingPage';
 import Payment from './pages/Payment';
 import About from './pages/About';
 import AdminDashboard from './pages/AdminDashboard';
-import AdminLogin from './pages/AdminLogin';
 import Profile from './pages/Profile';
 import ParkMap from './pages/ParkMap';
 import ResetPassword from './pages/ResetPassword';
@@ -56,7 +55,6 @@ function App() {
             <Route path="/payment" element={<Payment />} />
             <Route path="/about" element={<About />} />
             <Route path="/map" element={<ParkMap />} />
-            <Route path="/admin" element={<AdminLogin />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />

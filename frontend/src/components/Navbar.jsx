@@ -63,14 +63,15 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
             </button>
           )}
 
-          {/* Secure Admin Button */}
-          <Link
-            to="/admin"
-            className="flex items-center space-x-2 bg-white/10 border border-white/20 hover:bg-white/20 text-smart-glow px-5 py-2.5 rounded-xl font-black transition-all shadow-md transform hover:-translate-y-0.5 ml-4"
-          >
-            <svg className="w-4 h-4 text-smart-glow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-            <span className="tracking-widest uppercase text-[12px]">Admin Panel</span>
-          </Link>
+          {token && role === 'admin' && (
+            <Link
+              to="/admin/dashboard"
+              className="flex items-center space-x-2 bg-white/10 border border-white/20 hover:bg-white/20 text-smart-glow px-5 py-2.5 rounded-xl font-black transition-all shadow-md transform hover:-translate-y-0.5 ml-4"
+            >
+              <svg className="w-4 h-4 text-smart-glow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+              <span className="tracking-widest uppercase text-[12px]">Admin Panel</span>
+            </Link>
+          )}
         </div>
       </div>
     </nav>

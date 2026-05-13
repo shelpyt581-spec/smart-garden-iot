@@ -43,7 +43,12 @@ const LandingPage = () => {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('role', data.role || 'user');
-        navigate('/book');
+        
+        if (data.role === 'admin') {
+            navigate('/admin/dashboard');
+        } else {
+            navigate('/book');
+        }
       } else {
         setError(data.message || 'Authentication failed. Please try again.');
       }
